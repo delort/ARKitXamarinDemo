@@ -1,0 +1,3 @@
+﻿<technique vs="LitSolid" ps="LitSolid" vsdefines="NOUV" >
+  <pass name="litalpha" depthwrite="false" blend="multiply" />
+</technique>

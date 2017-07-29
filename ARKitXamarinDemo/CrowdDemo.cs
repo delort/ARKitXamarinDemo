@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using Foundation;
 using UIKit;
@@ -37,8 +38,10 @@ namespace ARKitXamarinDemo
 		{
 			base.Start();
 			CreateArScene();
+			ResourceCache.GetMaterial("Materials/mutant_M.xml");
+			Renderer.ReuseShadowMaps = false;
 			environmentNode = Scene.CreateChild();
-
+			//Scene.CreateComponent<SpatialCursor>();
 			Input.TouchEnd += e => OnGestureTapped();
 		}
 
@@ -52,11 +55,10 @@ namespace ARKitXamarinDemo
 				}
 			};
 
-			crowdManager.SubscribeToCrowdAgentReposition(args =>
+			crowdManager.CrowdAgentReposition += (args) =>
 			{
-				System.Console.WriteLine("SubscribeToCrowdAgentReposition!");
-				Node node = args.Node;
 				Vector3 velocity = args.Velocity * -1;
+				Node node = args.Node;
 				AnimationController animCtrl = node.GetComponent<AnimationController>();
 				if (animCtrl != null)
 				{
@@ -79,7 +81,7 @@ namespace ARKitXamarinDemo
 						animCtrl.Play(IdleAnimation, 0, true, 0.2f);
 					}
 				}
-			});
+			};
 		}
 
 		void KillAll()
@@ -108,12 +110,11 @@ namespace ARKitXamarinDemo
 		{
 			Node mutantNode = armyNode.CreateChild(name);
 			mutantNode.Position = pos;
-			mutantNode.SetScale(0.1f);
+			mutantNode.SetScale(0.12f);
 			var modelObject = mutantNode.CreateComponent<AnimatedModel>();
-
-			modelObject.CastShadows = true;
 			modelObject.Model = ResourceCache.GetModel("Models/Mutant.mdl");
 			modelObject.SetMaterial(ResourceCache.GetMaterial("Materials/mutant_M.xml"));
+			modelObject.CastShadows = true;
 			mutantNode.CreateComponent<AnimationController>().Play(IdleAnimation, 0, true, 0.2f);
 
 			// Create the CrowdAgent
@@ -126,7 +127,7 @@ namespace ARKitXamarinDemo
 			agent.NavigationQuality = NavigationQuality.High;
 		}
 
-		public void OnGestureTapped()
+		public async void OnGestureTapped()
 		{
 			NavigationMesh navMesh;
 			Vector3 hitPos = new Vector3(0, -1, 2);
@@ -142,8 +143,9 @@ namespace ARKitXamarinDemo
 				var planeNode = Scene.CreateChild();
 				var plane = planeNode.CreateComponent<StaticModel>();
 				plane.Model = CoreAssets.Models.Plane;
-				plane.SetMaterial(Material.FromColor(Color.Transparent));
-				planeNode.Scale = new Vector3(20, 1, 20);
+				//plane.SetMaterial(Material.FromColor(Color.Transparent));
+				plane.SetMaterial(ResourceCache.GetMaterial("tttt.xml"));
+				planeNode.Scale = new Vector3(20, 0.1f, 20);
 				planeNode.Position = hitPos;
 
 				Scene.CreateComponent<Navigable>();
@@ -169,22 +171,22 @@ namespace ARKitXamarinDemo
 				SubscribeToEvents();
 
 				int mutantIndex = 1;
-				for (int i = 0; i < 3; i++)
-				for (int j = 0; j < 3; j++)
-					SpawnMutant(new Vector3(hitPos.X + 0.15f * i, hitPos.Y, hitPos.Z + 0.13f * j), "Mutant " + mutantIndex++);
+				for (int i = 0; i < 4; i++)
+				for (int j = 0; j < 4; j++)
+					SpawnMutant(new Vector3(hitPos.X + 0.15f * i, hitPos.Y - 0.1f, hitPos.Z + 0.13f * j), "Mutant " + mutantIndex++);
 
 				return;
 			}
 
 			if (positionIsSelected)
 			{
-				//var newhitPos = Raycast();
-				//if (newhitPos == null)
-				//	return;
-				
+				var newhitPos = Raycast();
+				if (newhitPos == null)
+					return;
+				await Delay(1);
 				//Scene.GetComponent<SpatialCursor>().ClickAnimation();
 				navMesh = Scene.GetComponent<NavigationMesh>();
-				Vector3 pathPos = navMesh.FindNearestPoint(new Vector3(Randoms.Next(-2, 2), -1, 2), new Vector3(0.1f, 0.1f, 0.1f));
+				Vector3 pathPos = navMesh.FindNearestPoint(newhitPos.Value, new Vector3(0.1f, 0.1f, 0.1f));
 				Scene.GetComponent<CrowdManager>().SetCrowdTarget(pathPos, Scene);
 			}
 		}
